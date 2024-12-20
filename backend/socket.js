@@ -2,6 +2,8 @@ const socketIo = require('socket.io');
 const userModel = require('./models/userModel');
 const captainModel = require('./models/captainModel');
 
+
+
 let io; 
 
 function initializeSocket(server) {
@@ -31,12 +33,12 @@ function initializeSocket(server) {
     });
 }
 
-const sendMessageToSocketId = (socketId, messageObject) => {
+const sendMessageToSocketId = (socketId, message) => {
 
-    console.log(messageObject);
+    console.log(message);
     
         if (io) {
-            io.to(socketId).emit(messageObject.event, messageObject.data);
+            io.to(socketId).emit('message', message)
         } else {
             console.log('Socket.io not initialized.');
         }
