@@ -8,8 +8,10 @@ import ConfirmRide from '../components/ConfirmRide';
 import LookingForDriver from '../components/LookingForDriver';
 import WaitingForDriver from '../components/WaitingForDriver';
 import LocationSearchPanel from '../components/locationSearchPanel';
-import { SocketContext } from '../context/SocketContext';
+import { SocketContext } from '../context/SocketContext'
 import { UserDataContext } from '../context/UserContext';
+import { useNavigate } from 'react-router-dom';
+import LiveTracking from '../components/LiveTracking';
 
 const Home = () => {
     const [pickup, setPickup] = useState('');
@@ -30,12 +32,26 @@ const Home = () => {
     const [activeField, setActiveField] = useState(null)
     const [fare,setFare] = useState({})
     const [vehicleType,setVehicleType] = useState(null);
+    const [ride, setRide] = useState(null)
+    const navigate = useNavigate();
+
+    const {socket} = useContext(SocketContext)
     const {user} = useContext(UserDataContext);
    
     useEffect(()=>{
-        if(!user) return;
-        console.log(user)
+       socket.emit('join',{userType:'user',userId:user._id})
     }, [user])
+
+    socket.on('ride-confirmed', ride => {
+        setVehicleFound(false)
+        setWaitingForDriver(true)
+        setRide(ride)
+    })
+
+    socket.on('ride-started', ride=>{
+        setWaitingForDriver(false);
+        navigate('/riding',{state: {ride}})
+    })
 
     const submitHandler = (e) => {
         e.preventDefault();
@@ -174,13 +190,15 @@ const Home = () => {
 
     return (
         <div className="h-screen relative overflow-hidden">
-            <img className="w-16 absolute left-5 top-5" src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Uber_logo_2018.png"></img>
+            <img onClick={() => {
+                navigate('/user/logout')
+            }} className="w-16 z-20  absolute left-5 top-20" src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Uber_logo_2018.png"></img>
             <div onClick={() => {
                 setVehiclePanelOpen(false)
             }}
                 className="h-screen w-screen">
                 {/* Image for temporary use */}
-                <img className="h-full w-full object-cover" src="https://miro.medium.com/v2/resize:fit:1400/0*gwMx05pqII5hbfmX.gif"></img>
+                <LiveTracking></LiveTracking>
             </div>
             <div className="flex flex-col justify-end h-screen absolute top-0 w-full">
                 <div className="h-[35%] p-6 bg-white relative">
@@ -189,7 +207,7 @@ const Home = () => {
                         onClick={() => {
                             setPanelOpen(false);
                         }}
-                        className="opacity-0 absolute top-6 right-6 text-2xl"><i className="ri-arrow-down-s-line"></i></h5>
+                        className="opacity-0 absolute top-10 right-6 text-2xl"><i className="ri-arrow-down-s-line"></i></h5>
                     <h4 className="text-2xl font-semibold">Find a trip</h4>
                     <form onSubmit={(e) => {
                         submitHandler(e)
@@ -232,7 +250,14 @@ const Home = () => {
                 <VehiclePanel selectVehicle={setVehicleType} fare={fare} setConfirmRidePanel={setConfirmRidePanel} setVehiclePanelOpen={setVehiclePanelOpen}></VehiclePanel>
             </div>
             <div ref={confirmRidePanelRef} className="bg-white w-full fixed z-10 bottom-0 translate-y-full px-3 py-6 pt-12">
-                <ConfirmRide pickup={pickup} destination={destination} fare={fare} vehicleType={vehicleType} createRide={createRide} setVehicleFound={setVehicleFound} setConfirmRidePanel={setConfirmRidePanel} ></ConfirmRide>
+                <ConfirmRide
+                 pickup={pickup}
+                  destination={destination} 
+                  fare={fare} 
+                  vehicleType={vehicleType}
+                  createRide={createRide} 
+                  setVehicleFound={setVehicleFound} 
+                  setConfirmRidePanel={setConfirmRidePanel} ></ConfirmRide>
             </div>
             <div ref={vehicleFoundRef} className="bg-white w-full fixed z-10 bottom-0 translate-y-full px-3 py-6 pt-12">
                 <LookingForDriver
@@ -240,7 +265,11 @@ const Home = () => {
                  setVehicleFound={setVehicleFound}></LookingForDriver>
             </div>
             <div ref={waitingForDriverRef} className="bg-white w-full fixed z-10 bottom-0 px-3 py-6 pt-12">
-                <WaitingForDriver waitingForDriver={waitingForDriver}></WaitingForDriver>
+                <WaitingForDriver 
+                    ride={ride}
+                    setVehicleFound={setVehicleFound}
+                    setWaitingForDriver={setWaitingForDriver}
+                    waitingForDriver={waitingForDriver}></WaitingForDriver>
             </div>
         </div>
     )
